@@ -1,11 +1,11 @@
 # Misc-PowerShell
 
-This repository serves as a location for any miscelaneous PowerShell functions/scripts that aren't big enough to require their own repo.
+This repository serves as a location for any miscellaneous PowerShell functions/scripts that aren't big enough to require their own repo.
 
 
 ### Get-IsapiDllStatus.ps1
 
-This function accepts a list of web servers and returns ISAPI handler mapping permission information. I used this as part of a security as follows:
+This function accepts a list of web servers and returns ISAPI handler mapping permission information. Here is an example of using it to find all servers with websites that ISAPI handler mappings enabled and then exporting this output to CSV:
 ```powershell
 # Import servers here
 $Servers = Get-Content .\Servers.txt
