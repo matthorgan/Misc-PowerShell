@@ -50,11 +50,17 @@ function Get-IsapiDllStatus {
             $ScriptBlock = {
 
                 # Check if IIS is installed on the server
-                $IisInstalled = Get-WmiObject -Query "select * from Win32_ServerFeature where ID='2'"
+                try {
+                    $IisInstalled = Get-WmiObject -Query "select * from Win32_ServerFeature where ID='2'"
+                }
+                catch {
+                    Write-Warning -Message "Couldn't execute Wmi Query on $Server. Please check this server manually."
+                }
+
 
                 if ($IisInstalled) {
+                    # Import IIS module and get a list of IIS sites
                     Import-Module WebAdministration
-
                     $IisSiteNames = Get-ChildItem "IIS:\Sites\" | Select-Object -ExpandProperty Name
 
                     # Add server root option to $IisSiteNames
@@ -94,16 +100,11 @@ function Get-IsapiDllStatus {
             #######################################################
 
             try {
-                Invoke-Command -ComputerName $Server -ScriptBlock $ScriptBlock -Credential $Credential | Select-Object ServerName, IisSiteName, AccessPolicy
+                Invoke-Command -ComputerName $Server -ScriptBlock $ScriptBlock -Credential $Credential -ErrorAction Stop | Select-Object ServerName, IisSiteName, AccessPolicy
             }
             catch {
-                Write-Host "Couldn't run remote script on $Server. Please check this manually." -ForegroundColor Yellow
+                Write-Warning -Message "Couldn't run remote script on $Server. Please check this manually."
             }
-
-
-            # Disable ISAPI-dll
-            #Set-WebConfiguration "/system.webServer/handlers/@AccessPolicy" -Value "Read, Script" -PSPath "IIS:/sites/Default Web Site"
-
         }
     }
     end {
