@@ -51,7 +51,7 @@ function Get-IsapiDllStatus {
 
                 # Check if IIS is installed on the server
                 try {
-                    $IisInstalled = Get-WmiObject -Query "select * from Win32_ServerFeature where ID='2'"
+                    $IisInstalled = Get-WmiObject -Query "select * from Win32_ServerFeature where ID='2'" -ErrorAction Stop
                 }
                 catch {
                     Write-Warning -Message "Couldn't execute Wmi Query on $Server. Please check this server manually."
@@ -60,8 +60,13 @@ function Get-IsapiDllStatus {
 
                 if ($IisInstalled) {
                     # Import IIS module and get a list of IIS sites
-                    Import-Module WebAdministration
-                    $IisSiteNames = Get-ChildItem "IIS:\Sites\" | Select-Object -ExpandProperty Name
+                    Import-Module WebAdministration -ErrorAction Stop
+                    try {
+                        $IisSiteNames = Get-ChildItem "IIS:\Sites\" -ErrorAction Stop | Select-Object -ExpandProperty Name
+                    }
+                    catch {
+                        Write-Warning -Message "Couldn't list IIS sites on $Server. Please check this server manually."
+                    }
 
                     # Add server root option to $IisSiteNames
                     $IisSiteNames += "$env:COMPUTERNAME IIS Root Settings"
@@ -69,11 +74,11 @@ function Get-IsapiDllStatus {
                     foreach ($IisSiteName in $IisSiteNames) {
                         try {
                             if ($IisSiteName -eq "$env:COMPUTERNAME IIS Root Settings") {
-                                $IisSiteHandlerSettings = Get-WebConfiguration "/system.webServer/handlers"
+                                $IisSiteHandlerSettings = Get-WebConfiguration "/system.webServer/handlers" -ErrorAction Stop
                                 $AccessPolicy = $IisSiteHandlerSettings.AccessPolicy
                             }
                             else {
-                                $IisSiteHandlerSettings = Get-WebConfiguration "/system.webServer/handlers" -PSPath "IIS:\Sites\$IisSiteName"
+                                $IisSiteHandlerSettings = Get-WebConfiguration "/system.webServer/handlers" -PSPath "IIS:\Sites\$IisSiteName" -ErrorAction Stop
                                 $AccessPolicy = $IisSiteHandlerSettings.AccessPolicy
                             }
                         }
