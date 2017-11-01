@@ -85,10 +85,10 @@ function Install-Java {
         try {
             Write-Debug "Attempting to install Java $Version"
             $argumentString = $arguments -join " "
-            Invoke-Process -FilePath $Path -ArgumentList $argumentString -Verbose 
+            Start-Process -FilePath $Path -ArgumentList $argumentString -Verbose 
         }
         catch {
-            Write-Error "Invoke-Process failed trying to install Java" -ErrorAction Continue
+            Write-Error "Start-Process failed trying to install Java" -ErrorAction Continue
             throw $_     
         }
     }
