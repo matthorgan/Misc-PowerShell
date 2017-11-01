@@ -15,3 +15,7 @@ $Creds = Get-Credential
 # Create csv file of all websites that have ISAPI-Dll enabled (Execute)
 $Servers | Get-IsapiDllStatus -Credential $Creds| Where-Object {$_.AccessPolicy -match "Execute"} | Export-Csv -Path "IsapiReport.csv" -Force -NoTypeInformation
 ```
+
+### Install-Java.ps1
+
+This function is used to install Java with parameters for common install options. You'll need Get-RemoteProgram available as this function uses it to check whether Java is installed: https://gallery.technet.microsoft.com/scriptcenter/Get-RemoteProgram-Get-list-de9fd2b4
