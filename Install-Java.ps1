@@ -44,8 +44,8 @@ function Install-Java {
 
     # Check Java is installed
     Write-Verbose "Checking if Java $Version is already installed"
-    $javaInstalled = (Get-RemoteProgram -Property VersionMajor | 
-        Where-Object {$_.ProgramName -match 'Java' -and $_.VersionMajor -match $Version}).Count -gt 0
+    $javaInstalled = ((Get-RemoteProgram -Property VersionMajor | 
+        Where-Object {$_.ProgramName -match 'Java' -and $_.VersionMajor -match $Version}).ProgramName).Count -gt 0
 
     if (-not $javaInstalled) {
         Write-Verbose "Java $Version not installed"
@@ -85,12 +85,14 @@ function Install-Java {
         try {
             Write-Debug "Attempting to install Java $Version"
             $argumentString = $arguments -join " "
-            Start-Process -FilePath $Path -ArgumentList $argumentString -Verbose 
+            Start-Process -FilePath $Path -ArgumentList $argumentString -Verbose -ErrorAction Stop 
+            Write-Verbose "Java $Version Installed"
         }
         catch {
             Write-Error "Start-Process failed trying to install Java" -ErrorAction Continue
             throw $_     
         }
+    } else {
+        Write-Verbose "Java $Version already installed"
     }
-    Write-Verbose "Java $Version Installed"
 }
