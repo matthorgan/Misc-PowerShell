@@ -92,5 +92,5 @@ function Install-Java {
             throw $_     
         }
     }
-    Write-Verbose "Java $VersionMajor Installed"
+    Write-Verbose "Java $Version Installed"
 }
