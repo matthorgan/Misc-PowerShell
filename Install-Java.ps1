@@ -21,6 +21,8 @@ function Install-Java {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
+        [ValidateScript({Test-Path $_})]
+        [ValidatePattern('\.exe$')]
         [String]$Path,
 
         [Parameter(Mandatory = $true)]
@@ -53,13 +55,13 @@ function Install-Java {
         # Add InstallDir to arguments if used
         if ($PSBoundParameters.ContainsKey('InstallDir')) {
             Write-Verbose 'Adding InstallDir to Java install parameters'
-            $arguments += ('INSTALLDIR="{0}"' -f $InstallDir)
+            $arguments += ("INSTALLDIR=`"$InstallDir`"")
         }
 
         # Add LogPath to arguments if used
         if ($PSBoundParameters.ContainsKey('LogPath')) {    
             try {
-                if ($LogPath -notmatch "\w*.log\b") { 
+                if ($LogPath -notmatch "\w*\.log\b") { 
                     Write-Verbose "Creating new log file Java$($Version)_Setup.log in $LogPath"
                     $javaLogPath = Join-Path -Path $LogPath -ChildPath "\Java$($Version)_Setup.log" -ErrorAction Stop
                     New-Item -Path $LogPath -ItemType Directory -Force -ErrorAction Stop | Out-String |
