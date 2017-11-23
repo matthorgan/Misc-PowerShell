@@ -6,17 +6,12 @@ function Install-Java {
         Checks whether Java is installed already and installs Java. Current supported versions are 6, 7
     .EXAMPLE
         PS C:\> Install-Java -Path C:\jre.exe -Version 7
-
         If not already installed, installs Java 7 
     .EXAMPLE
         PS C:\> Install-Java -Path C:\jre.exe -Version 7 -InstallDir C:\example\ -LogPath C:\javaLog.log -Static
-        
         If not already installed, installs Java 7 into C:\example\, outputs the install log to C:\javaLog.log 
         and finally sets the Java installation to static
     .NOTES
-        Uses Get-RemoteProgram for checking if Java is installed. Make sure this is available to you before
-        you run this function: https://gallery.technet.microsoft.com/scriptcenter/Get-RemoteProgram-Get-list-de9fd2b4 
-
         This function does not handle all Java install options - only the most commonly used
         Java install parameters can be found at: https://www.java.com/en/download/help/silent_install.xml
         Tested with Java 6, 7 and 8
@@ -25,20 +20,20 @@ function Install-Java {
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [String]$Path,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateSet('6', '7', '8')]
-        [String]$Version,
+        [Int16]$Version,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [String]$InstallDir,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [String]$LogPath,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [Switch]$Static
     )
 
@@ -62,17 +57,28 @@ function Install-Java {
         }
 
         # Add LogPath to arguments if used
-        if ($PSBoundParameters.ContainsKey('LogPath')) {
-            if ($LogPath -notmatch "\w*.log\b") { 
-                Write-Verbose "Creating new log file Java$($Version)_Setup.log in $LogPath"
-                New-Item -Path $LogPath -ItemType Directory -Force -ErrorAction Stop
-                $javaLogFolder = Join-Path -Path $LogPath -ChildPath "\Java$($Version)_Setup.log"
-            } else {
-                $javaLogFolder = Split-path -Path $LogPath -Parent 
-                New-Item -Path $javaLogFolder -ItemType Directory -Force -ErrorAction Stop
+        if ($PSBoundParameters.ContainsKey('LogPath')) {    
+            try {
+                if ($LogPath -notmatch "\w*.log\b") { 
+                    Write-Verbose "Creating new log file Java$($Version)_Setup.log in $LogPath"
+                    $javaLogPath = Join-Path -Path $LogPath -ChildPath "\Java$($Version)_Setup.log" -ErrorAction Stop
+                    New-Item -Path $LogPath -ItemType Directory -Force -ErrorAction Stop | Out-String |
+                        Write-Verbose 
+                }
+                else {
+                    $javaLogPath = $LogPath
+                    $javaLogFolder = Split-Path -Path $LogPath -Parent -ErrorAction Stop  
+                    New-Item -Path $javaLogFolder -ItemType Directory -Force -ErrorAction Stop | 
+                    Out-String | Write-Verbose  
+                }
+                Write-Verbose 'Adding InstallDir to Java install parameters'
+                $arguments += ("/L `"$javaLogPath`"")
             }
-            Write-Verbose 'Adding InstallDir to Java install parameters'
-            $arguments += ('/L "{0}"' -f $javaLogFolder)
+            catch {
+                Write-Error "Error setting up $javaLogFolder for Java log path" -ErrorAction Continue
+                throw $_ 
+            }
+
         }
 
         # Add Static to arguments if used
@@ -83,16 +89,26 @@ function Install-Java {
 
         # Install Java 
         try {
-            Write-Debug "Attempting to install Java $Version"
+            Write-Verbose "Attempting to install Java $Version"
             $argumentString = $arguments -join " "
-            Start-Process -FilePath $Path -ArgumentList $argumentString -Verbose -ErrorAction Stop 
+            $installParams = @{
+                FilePath = $Path 
+                ArgumentList = $argumentString
+                Verbose = $VerbosePreference
+                ErrorAction = 'Stop'
+            }
+            $installOutput = Invoke-Process @installParams
+
+            Write-Verbose "StdOut information from Java install (Non terminating - safe to ignore):"
+            Write-Verbose ($installOutput | Out-String)
             Write-Verbose "Java $Version Installed"
         }
         catch {
-            Write-Error "Start-Process failed trying to install Java" -ErrorAction Continue
+            Write-Error "Invoke-Process failed trying to install Java" -ErrorAction Continue
             throw $_     
         }
-    } else {
+    }
+    else {
         Write-Verbose "Java $Version already installed"
     }
 }
