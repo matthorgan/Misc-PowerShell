@@ -1,4 +1,3 @@
-
 function Get-ScsmMPDependencies {
     <#
     .SYNOPSIS
@@ -20,7 +19,7 @@ function Get-ScsmMPDependencies {
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [ValidatePattern('\.mpb$|\.mp$')]
         [String[]]$ManagementPack
     )
