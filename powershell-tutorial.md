@@ -69,7 +69,7 @@ The above command will output everything for each matching `*.md` file it finds 
 
 `$markdownFiles | Select-Object -First 1 | Format-List *`
 
-Note on the above, we could also write `$markdownFiles | Format-List * Select-Object -First 1` but it's best practice to filter as far left in the code as possible to reduce the number of operations the code needs to do.
+Note on the above, we could also write `$markdownFiles | Format-List * | Select-Object -First 1` but it's best practice to filter as far left in the code as possible to reduce the number of operations the code needs to do.
 
 Now that we've seen all the useful info we can get, let's say we want to grab the `FullName` and `CreationTime`. We can use the `Select-Object` command again but this time we can select a property or multiple properties to return:
 
@@ -115,13 +115,55 @@ Azure CLI
 
 Now we want to grab all of our Terraform Service Principals. To find the commands for both azcli and AzPS a bit of Googling is required or you can trawl through the docs. One final option for PowerShell is to search for a command using `Get-Command -Module Az*` which will return every single command for the Az module of which you can then start to filter similar to what we did above.
 
-TODO:
+`$servicePrincipals = Get-AzADServicePrincipal | Where-Object DisplayName -match '_TF$'`
 
-Get-AzADAppReg?
-Store in variable
-Loop through and add to group
+Now we've got all of our Service Principals, we need to add them to the group of our choice. With a bit of Googling, you can see that the command to add a member to a group will look something like this (Docs [here](https://docs.microsoft.com/en-us/powershell/module/az.resources/add-azadgroupmember?view=azps-6.3.0)):
 
-CLI Equivalent with a filter query THEN explain the ConvertFrom-Json
-Store in variable 
-Loop through and add to group
+`Add-AzADGroupMember -MemberObjectId <Your Service Principal Object ID> -TargetGroupObjectId <Your Group Object ID>`
 
+Looking at the output of our `$servicePrincipals` variable, we can see that `Id` is a property we can use to feed into the above command. Because there are more than one Service Principal in our variable, we will now need to do a simple `foreach` loop to iterate through each Service Principal:
+
+```powershell
+# Object ID for group 'mh-temp-ps-demo-group'
+$groupObjectId = 'd5b06c01-e73f-45ab-933e-45003bcbca7c'
+
+foreach ($sp in $servicePrincipals) {
+    Add-AzADGroupMember -MemberObjectId $sp.Id -TargetGroupObjectId $groupObjectId
+}
+```
+
+You'll notice in the above script we're using `.Id`. Whilst we could also do `$appReg | Select-Object -Property Id`, you can also use dot notation as above to access any of the properties available on your item.
+
+Now we've added all of the SPs, let's remove them ready for the Azure CLI way:
+
+```powershell
+foreach ($sp in $servicePrincipals) {
+    Remove-AzADGroupMember -MemberObjectId $sp.Id -GroupObjectId $groupObjectId
+}
+```
+
+With the Azure CLI, you can do some fancy JMESPath query stuff to filter down into the data you want. This is outside of the scope of this tutorial but feel free to check out [this link](https://docs.microsoft.com/en-us/cli/azure/query-azure-cli) which covers some basic examples.
+
+I personally find the query language quite difficult to use so I'll be showing how you can manipulate that data via PowerShell as per the Azure PowerShell Module commands.
+
+Take this example:
+
+`$servicePrincipals = az ad sp list --all`
+
+You'll notice that if we pipe this output to `Get-Member` to see what properties we have available, we don't have anything useful. That's because by default, the output comes back as JSON and not in PowerShell objects. To get around this, we can use the `ConvertFrom-Json` command to convert things into our fluffy PowerShell object land:
+
+`$servicePrincipals = az ad sp list --all | ConvertFrom-Json`
+
+Now we can filter in the way we've done previously: 
+
+`$servicePrincipals = az ad sp list --all | ConvertFrom-Json | Where-Object 'displayName' -match '_TF$'`
+
+Now we can get into our loop as we've done with the Azure PowerShell Module way:
+
+```powershell
+$groupObjectId = 'd5b06c01-e73f-45ab-933e-45003bcbca7c'
+
+foreach ($sp in $servicePrincipals) {
+    az ad group member add --group $groupObjectId --member-id $sp.objectId
+}
+```
